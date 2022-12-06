@@ -1,5 +1,4 @@
-const { addNewUser, isUnique, getUserInfo } = require("../models/users.model");
-const { BadRequestError } = require("../errors");
+const { addNewUser, isUnique, getUserInfo, getUser, editUser } = require("../models/users.model");
 const { StatusCodes } = require('http-status-codes');
 
 async function httpAddNewUser(req, res) {
@@ -10,13 +9,20 @@ async function httpAddNewUser(req, res) {
     return res.status(StatusCodes.CREATED).json({ username: user.username, token: user.token });
 }
 
-async function httpGetUserInfo(req, res) {
+async function httpLoginUser(req, res) {
     const { username, password } = req.body;
-    const token = await getUserInfo({ username, password });
-    return res.status(StatusCodes.OK).json({ username, token });
+    const {token, user} = await getUserInfo({ username, password });
+    return res.status(StatusCodes.OK).json({ username: user.username, token });
+}
+
+async function httpUpdateUser(req, res) {
+    const newUser = { _id: req.userID, ...req.body };
+    const result = await editUser(newUser);
+    return res.status(StatusCodes.OK).json(result);
 }
 
 module.exports = {
     httpAddNewUser,
-    httpGetUserInfo,
+    httpLoginUser,
+    httpUpdateUser,
 }

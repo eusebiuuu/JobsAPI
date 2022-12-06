@@ -1,5 +1,6 @@
 const { BadRequestError, UnauthenticatedError } = require('../errors');
 const Users = require('./users.mongo');
+const bcrypt = require('bcryptjs');
 
 function isValidUser(user) {
     const curUser = new Users(user);
@@ -27,28 +28,49 @@ async function isUnique(user) {
         $or: [{ email: user.email }, { username: user.username }],
     });
     if (result) {
-        throw new BadRequestError('You already have an account');
+        throw new BadRequestError('A user with this email or username already exists');
     }
 }
 
-async function getUser(username) {
-    return await Users.findOne({
-        username: username,
+async function getUser(user) {
+    const result = await Users.findOne({
+        $or: [{ _id: user._id }, { username: user.username }],
     });
+    if (!result) {
+        throw new UnauthenticatedError('Invalid credentials');
+    }
+    return result;
 }
 
 async function getUserInfo(user) {
-    const foundUser = await getUser(user.username);
-    // console.log(foundUser);
-    if (!foundUser || !user.password) {
+    const foundUser = await getUser({ username: user.username });
+    if (!user.password) {
         throw new UnauthenticatedError(`Invalid credentials`);
     }
     const passwordMatch = await foundUser.checkPasswordValidity(user.password);
     if (!passwordMatch) {
+        console.log(user.password);
         throw new UnauthenticatedError(`Invalid credentials`);
     }
     const token = foundUser.createJWT();
-    return token;
+    return {
+        user: foundUser,
+        token
+    };
+}
+
+async function editUser(newUser) {
+    if (newUser.password) {
+        const salt = await bcrypt.genSalt(10);
+        newUser.password = await bcrypt.hash(newUser.password, salt);
+    }
+    const oldUser = await getUser({ _id: newUser._id });
+    const finalUser = { ...oldUser._doc, ...newUser };
+    isValidUser(finalUser);
+    await Users.findOneAndUpdate({
+        _id: finalUser._id,
+    }, finalUser);
+    return finalUser;
 }
 
 module.exports = {
@@ -56,4 +78,5 @@ module.exports = {
     getUser,
     getUserInfo,
     isUnique,
+    editUser,
 }

@@ -11,8 +11,8 @@ async function authorizeUser(req, res, next) {
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         // console.log(decodedToken);
-        const { username, userID } = decodedToken;
-        req.userInfo = { username, userID };
+        const { userID } = decodedToken;
+        req.userID = userID;
         next();
     } catch (err) {
         throw new UnauthenticatedError('Invalid token');
