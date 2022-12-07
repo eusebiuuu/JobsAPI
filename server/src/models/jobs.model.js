@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+const moment = require('moment');
 const { BadRequestError, NotFoundError } = require("../errors");
 const Jobs = require("./jobs.mongo");
 
@@ -61,10 +63,76 @@ async function deleteJob(jobID, userID) {
     }
 }
 
+async function getStats(userID) {
+    const result = await Jobs.aggregate([
+        {
+            $match: {
+                createdBy: mongoose.Types.ObjectId(userID),
+            },
+        },
+        {
+            $group: {
+                _id: '$status',
+                count: {
+                    $sum: 1,
+                }
+            }
+        }
+    ]);
+    const stats = result.reduce((statusObj, currStatus) => {
+        const { _id: jobStatus, count } = currStatus;
+        statusObj[jobStatus] += count;
+        return statusObj;
+    }, {
+        pending: 0,
+        interview: 0,
+        declined: 0,
+    });
+
+    const monthlyApp = await Jobs.aggregate([
+        {
+            $match: {
+                createdBy: mongoose.Types.ObjectId(userID),
+            },
+        },
+        {
+            $group: {
+                _id: {
+                    year: {
+                        $year: '$createdAt',
+                    },
+                    month: {
+                        $month: '$createdAt',
+                    }
+                },
+                count: {
+                    $sum: 1,
+                }
+            }
+        },
+        {
+            $sort: {
+                '_id.year': -1,
+                '_id.month': 1,
+            }
+        },
+        {
+            $limit: 5,
+        }
+    ]);
+    const monthlyApplications = monthlyApp.map(app => {
+        const { _id: { year, month }, count } = app;
+        const date = moment().month(month - 1).year(year).format('MMM Do YY');
+        return { date, count };
+    }).reverse();
+    return { stats, monthlyApplications };
+}
+
 module.exports = {
     getAllJobs,
     getOneJob,
     addNewJob,
     deleteJob,
     editJob,
+    getStats,
 };

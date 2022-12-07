@@ -7,7 +7,7 @@ async function authorizeUser(req, res, next) {
         throw new UnauthenticatedError('Token not provided correctly');
     }
     const token = authToken.split(' ')[1];
-    // console.log(token);
+
     try {
         const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         // console.log(decodedToken);

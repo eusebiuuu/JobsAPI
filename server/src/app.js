@@ -18,6 +18,9 @@ app.set('trust proxy', 1);
 app.use(rateLimiter({
     windowMs: 60 * 1000,
     max: 100,
+    message: {
+        error: 'Too many requests per minute (maximum is 10)',
+    }
 }));
 app.use(express.json());
 app.use('/api/users', userAuthRouter);

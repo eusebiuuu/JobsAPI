@@ -1,4 +1,4 @@
-const { addNewUser, isUnique, getUserInfo, getUser, editUser } = require("../models/users.model");
+const { addNewUser, isUnique, getUserInfo, editUser } = require("../models/users.model");
 const { StatusCodes } = require('http-status-codes');
 
 async function httpAddNewUser(req, res) {
@@ -12,6 +12,7 @@ async function httpAddNewUser(req, res) {
 async function httpLoginUser(req, res) {
     const { username, password } = req.body;
     const {token, user} = await getUserInfo({ username, password });
+    console.log(user);
     return res.status(StatusCodes.OK).json({ username: user.username, token });
 }
 
